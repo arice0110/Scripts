@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juego del Impostor</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    font-family:'Orbitron', sans-serif;
+    text-align:center;
+    color:white;
+    background: radial-gradient(circle at top,#222,#000);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.container{
+    width:100%;
+    max-width:420px;
+    padding:20px;
+}
+
+h1,h2,h3{margin:10px 0;}
+
+.card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(15px);
+    border-radius:22px;
+    padding:25px;
+    box-shadow:0 0 20px rgba(255,255,255,0.15);
+    animation:fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:scale(0.9);}
+  to{opacity:1; transform:scale(1);}
+}
+
+.hidden{display:none;}
+
+input{
+    width:80%;
+    padding:10px;
+    margin:6px;
+    border-radius:12px;
+    border:none;
+    text-align:center;
+    font-family:'Orbitron';
+    background:#111;
+    color:white;
+}
+
+button{
+    padding:12px 22px;
+    margin:8px;
+    border-radius:14px;
+    border:none;
+    font-family:'Orbitron';
+    background:#444;
+    color:white;
+    font-size:15px;
+    cursor:pointer;
+    box-shadow:0 0 10px #777;
+    transition:0.2s;
+}
+
+button:hover{
+    transform:scale(1.05);
+    background:#666;
+    box-shadow:0 0 15px #aaa;
+}
+
+.reveal{
+    margin-top:15px;
+    padding:15px;
+    background:rgba(0,0,0,0.8);
+    border-radius:12px;
+    animation:fadeIn 0.5s ease;
+}
+
+#timer{
+    font-size:50px;
+    text-shadow:0 0 12px #ffffff;
+}
+/* ===== SWITCH FUTURISTA ===== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 55px;
+  height: 28px;
+  margin-top: 8px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #333;
+  transition: .3s;
+  border-radius: 30px;
+  box-shadow: 0 0 10px #000 inset;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #888;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #aaa;
+}
+
+.switch input:checked + .slider {
+  background-color: #00c3ff;
+  box-shadow: 0 0 12px #00c3ff;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(27px);
+  background-color: #fff;
+  box-shadow: 0 0 12px #fff;
+}
+/* ===== ESTILOS PARA CONTROLES DEL TEMPORIZADOR ===== */
+#timerControls {
+    margin-top: 20px;
+}
+
+#timerControls button {
+    margin: 5px;
+    min-width: 120px;
+}
+
+#pauseBtn {
+    background: #444;
+}
+
+#pauseBtn:hover {
+    background: #666;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h1>🕵️ JUEGO DEL IMPOSTOR</h1>
+
+<div id="setup" class="card">
+    <p>👥 Cantidad de jugadores</p>
+    <input type="number" id="numPlayers" min="3" value="4">
+    <div id="impostorManualBox">
+  <p>😈 Cantidad de impostores</p>
+  <input type="number" id="numImpostors" min="1" value="1">
+</div>
+    <p>⏳ Tiempo de juego (min)</p>
+<input type="number" id="gameTime" min="1" value="2">
+
+<p>💡 ¿Activar pista para impostores?</p>
+<label class="switch">
+  <input type="checkbox" id="enableHint" checked>
+  <span class="slider"></span>
+</label>
+<p style="margin-top:6px;">💡 Usar pista</p>
+<p>🎲 ¿Impostores aleatorios?</p>
+<label class="switch">
+  <input type="checkbox" id="randomImpostors" onchange="toggleImpostorInput()">
+  <span class="slider"></span>
+</label>
+<p style="margin-top:6px;">🎲 Modo aleatorio</p>
+
+<!-- NUEVA SECCIÓN: SELECCIÓN DE CATEGORÍA -->
+<p>📁 Categoría de palabras</p>
+<select id="categorySelect" style="padding:8px; border-radius:10px; background:#111; color:white; font-family:'Orbitron'; margin:10px 0;">
+    <option value="aleatorio">🎲 Aleatorio</option>
+    <option value="casa">🏠 Casa</option>
+    <option value="animales">🐶 Animales</option>
+    <option value="ropa">👕 Ropa</option>
+    <option value="comida">🍕 Comida</option>
+    <option value="transporte">🚗 Transporte</option>
+</select>
+
+<p>🔄 ¿Categoría aleatoria?</p>
+<label class="switch">
+  <input type="checkbox" id="randomCategory" onchange="toggleRandomCategory()">
+  <span class="slider"></span>
+</label>
+<p style="margin-top:6px;">🔄 Cambiar categoría cada ronda</p>
+
+<br>
+<button onclick="createNames()">🚀 CONTINUAR</button>
+</div>
+
+<div id="names" class="card hidden">
+    <h3>📝 Nombres de jugadores</h3>
+    <div id="nameInputs"></div>
+    <button onclick="startGame()">🎮 INICIAR</button>
+<!-- AGREGAR ESTA LÍNEA: -->
+<button onclick="goBack('names')" style="background:#333;">⬅️ VOLVER A CONFIGURACIÓN</button>
+</div>
+
+<div id="roleScreen" class="card hidden">
+    <h2 id="playerTurn"></h2>
+    <button onclick="showRole()">👁 VER ROL</button>
+    <div id="roleResult" class="reveal hidden"></div>
+    <button onclick="nextPlayer()">➡️ SIGUIENTE</button>
+<!-- AGREGAR ESTA LÍNEA: -->
+<button onclick="goBack('roleScreen')" style="background:#333;">⬅️ VOLVER A NOMBRES</button>
+</div>
+
+<div id="timerScreen" class="card hidden">
+    <h2>⏳ TIEMPO DE JUEGO</h2>
+    <div id="timer">00:00</div>
+    <!-- AGREGAR ESTOS BOTONES: -->
+    <div id="timerControls">
+        <button onclick="togglePause()" id="pauseBtn">⏸️ PAUSAR</button>
+        <button onclick="stopTimer()" style="background:#600;">⏹️ DETENER</button>
+    </div>
+</div>
+
+<div id="endScreen" class="card hidden">
+    <h1>⏰ TIEMPO TERMINADO</h1>
+    <button onclick="revealImpostors()">😈 VER IMPOSTORES</button>
+    <div id="impostorList" class="reveal hidden"></div>
+    <button onclick="restartGame()">🔄 NUEVA RONDA</button>
+<!-- AGREGAR ESTA LÍNEA: -->
+<button onclick="goToSetup()" style="background:#333;">⚙️ VOLVER A CONFIGURACIÓN</button>
+</div>
+
+</div>
+
+<script>
+let players=[], roles=[], currentPlayer=0, secretWord="", hintEnabled=true;
+// AGREGAR ESTAS VARIABLES:
+let timerPaused = false;
+let remainingTime = 0;
+let timerInterval = null;
+
+// NUEVAS VARIABLES PARA CATEGORÍAS
+let selectedCategory = "aleatorio";
+let randomCategoryEnabled = false;
+function toggleImpostorInput(){
+    const randomOn = document.getElementById("randomImpostors").checked;
+    const box = document.getElementById("impostorManualBox");
+    
+    if(randomOn){
+        box.style.display = "none";
+    }else{
+        box.style.display = "block";
+    }
+}
+
+// ▼▼▼ AGREGAR ESTA FUNCIÓN NUEVA AQUÍ ▼▼▼
+function toggleRandomCategory() {
+    randomCategoryEnabled = document.getElementById("randomCategory").checked;
+    const categorySelect = document.getElementById("categorySelect");
+    
+    if(randomCategoryEnabled) {
+        categorySelect.disabled = true;
+        categorySelect.style.opacity = "0.5";
+        categorySelect.style.cursor = "not-allowed";
+    } else {
+        categorySelect.disabled = false;
+        categorySelect.style.opacity = "1";
+        categorySelect.style.cursor = "pointer";
+    }
+}
+// ▲▲▲ HASTA AQUÍ ▲▲▲
+
+let savedNames = JSON.parse(localStorage.getItem("savedNames")) || [];
+let usedWords = JSON.parse(localStorage.getItem("usedWords")) || [];
+let roundsPlayed = JSON.parse(localStorage.getItem("roundsPlayed")) || 0;
+
+const wordCategories = {
+    "aleatorio": [
+        "mesa", "silla", "cama", "puerta", "ventana", "libro", "lápiz", "cuaderno", "reloj", "espejo",
+        "lámpara", "perro", "gato", "pájaro", "pez", "vaca", "caballo", "gallina", "pato", "mariposa",
+        "camisa", "pantalón", "zapatos", "sombrero", "guantes", "abrigo", "manzana", "naranja", "plátano", "uva",
+        "zanahoria", "tomate", "cebolla", "papa", "lechuga", "carro", "bicicleta", "autobús", "tren", "avión",
+        "barco", "cuchara", "tenedor", "cuchillo", "plato", "vaso", "taza", "olla", "sol", "luna",
+        "estrella", "nube", "lluvia", "árbol", "flor", "río", "mar", "montaña", "playa", "ciudad",
+        "escuela", "hospital", "iglesia", "parque", "tienda", "doctor", "maestro", "policía", "bombero", "cocinero",
+        "rojo", "azul", "verde", "amarillo", "negro", "blanco", "brazo", "pierna", "cabeza", "mano",
+        "ojo", "oreja", "nariz", "boca", "padre", "madre", "hermano", "hermana", "abuelo", "abuela",
+        "agua", "leche", "pan", "queso", "huevo", "arroz", "frijol", "tortilla", "carne", "pescado"
+    ],
+    
+    "casa": [
+        "sofá", "almohada", "cobija", "colchón", "armario", "cómoda", "estantería", "escritorio", "sillón", "mecedora",
+        "cocina", "estufa", "horno", "microondas", "refrigerador", "licuadora", "batidora", "tostadora", "cafetera", "hervidor",
+        "sartén", "cacerola", "olla", "exprimidor", "colador", "tabla", "cortar", "abrelatas", "pelador", "rallador",
+        "tazón", "jarra", "termo", "salero", "pimentero", "azucarero", "vinagrera", "aceitera", "mantel", "individual",
+        "toalla", "jabón", "shampoo", "acondicionador", "cepillo", "dientes", "pasta", "dental", "peine", "secadora",
+        "plancha", "espejo", "ducha", "bañera", "inodoro", "lavabo", "grifo", "llave", "cesto", "basura",
+        "recogedor", "escoba", "trapeador", "cubo", "aspiradora", "plumero", "franela", "detergente", "suavizante", "cloro",
+        "lámpara", "foco", "interruptor", "enchufe", "cable", "extensión", "cortina", "persiana", "alfombra", "tapete",
+        "adorno", "cuadro", "foto", "reloj", "pared", "despertador", "calendario", "agenda", "libreta", "grapadora",
+        "tijeras", "pegamento", "cinta", "clips", "grapas", "sobre", "sello", "cartera", "llaves", "monedero"
+    ],
+    
+    "animales": [
+        "elefante", "león", "tigre", "jirafa", "cebra", "rinoceronte", "hipopótamo", "cocodrilo", "tortuga", "serpiente",
+        "lagarto", "rana", "sapo", "canguro", "koala", "oso", "panda", "lobo", "zorro", "conejo",
+        "ardilla", "ratón", "erizo", "murciélago", "ballena", "delfín", "tiburón", "pulpo", "medusa", "estrella",
+        "mar", "cangrejo", "langosta", "camarón", "ostra", "mejillón", "almeja", "caracol", "babosa", "hormiga",
+        "mosquito", "mosca", "abeja", "avispa", "grillo", "saltamontes", "cucaracha", "araña", "escorpión", "mariposa",
+        "polilla", "libélula", "mantis", "escarabajo", "mariquita", "ciempiés", "pulga", "piojo", "garrapata", "ácaro",
+        "camello", "llama", "alpaca", "bisonte", "búfalo", "antílope", "ciervo", "reno", "alce", "jabalí",
+        "orangután", "gorila", "chimpancé", "mono", "mandril", "lémur", "perezoso", "ornitorrinco", "equidna", "armadillo",
+        "mapache", "mofeta", "nutria", "castor", "tejón", "jerbo", "hámster", "cobaya", "chinchilla", "hurón",
+        "foca", "morsa", "león", "marino", "nutria", "marina", "pingüino", "flamenco", "cisne", "ganso",
+        "pavo", "real", "codorniz", "paloma", "gorrión", "canario", "loro", "águila", "halcón", "búho"
+    ],
+    
+    "ropa": [
+        "camiseta", "polo", "blusa", "playera", "suéter", "sudadera", "chaqueta", "impermeable", "gabardina", "chaleco",
+        "chal", "poncho", "traje", "americana", "jeans", "short", "bermuda", "falda", "vestido", "enterizo",
+        "leggings", "mallas", "chándal", "calzoncillos", "bóxer", "calzón", "tanga", "sostén", "top", "pijama",
+        "camisón", "bata", "calcetines", "medias", "panty", "polainas", "manguitos", "mitones", "manoplas", "pañuelo",
+        "corbata", "pajarita", "cinturón", "tirantes", "boina", "capucha", "visera", "gorro", "diadema", "pinza",
+        "coletero", "liga", "tenis", "sneakers", "botas", "botines", "sandalias", "chanclas", "alpargatas", "zuecos",
+        "mocasines", "bailarinas", "tacones", "plataforma", "zapato", "deportivo", "zapato", "formal", "zapato", "escolar",
+        "uniforme", "escolar", "uniforme", "trabajo", "uniforme", "deportivo", "delantal", "mandil", "bata", "laboratorio",
+        "chaleco", "reflectante", "casco", "gafas", "protección", "gafas", "sol", "lentes", "contacto", "antifaz",
+        "pañal", "pañales", "body", "peto", "overol", "bebé", "gorro", "bebé", "patines", "bebé", "zapatos",
+        "bebé", "kimono", "sari", "cheongsam", "kilt", "huipil", "sarape", "sombrero", "charro", "traje", "regional"
+    ],
+    
+    "comida": [
+        "arroz", "frijol", "maíz", "trigo", "avena", "cebada", "quinoa", "papa", "camote", "yuca",
+        "zanahoria", "cebolla", "ajo", "pimiento", "tomate", "lechuga", "espinaca", "col", "brócoli", "coliflor",
+        "pepino", "calabacín", "berenjena", "calabaza", "rábano", "remolacha", "jitomate", "chile", "jalapeño", "poblano",
+        "manzana", "pera", "durazno", "ciruela", "cereza", "uva", "fresa", "frambuesa", "mora", "arándano",
+        "kiwi", "piña", "mango", "papaya", "guayaba", "plátano", "coco", "aguacate", "limón", "naranja",
+        "mandarina", "toronja", "sandía", "melón", "granada", "maracuyá", "carne", "res", "pollo", "pavo",
+        "cerdo", "cordero", "huevo", "pescado", "atún", "salmón", "trucha", "camarón", "langosta", "calamar",
+        "pulpo", "mejillón", "leche", "queso", "yogur", "mantequilla", "crema", "nata", "aceite", "vinagre",
+        "sal", "azúcar", "miel", "harina", "pan", "tortilla", "pasta", "sopa", "ensalada", "sándwich",
+        "hamburguesa", "pizza", "taco", "sushi", "paella", "curry", "guiso", "estofado", "asado", "barbacoa"
+    ],
+    
+    "transporte": [
+        "automóvil", "camioneta", "pickup", "van", "suv", "todoterreno", "camión", "trailer", "volquete", "ambulancia",
+        "patrulla", "bomberos", "autobús", "microbús", "colectivo", "tren", "metro", "tranvía", "trolebús", "monorriel",
+        "funicular", "teleférico", "bicicleta", "triciclo", "motocicleta", "scooter", "cuatrimoto", "carro", "golf", "grúa",
+        "tractor", "excavadora", "bulldozer", "retroexcavadora", "compactador", "mezcladora", "concreto", "grúa", "torre", "montacargas",
+        "carretilla", "diablito", "remolque", "caravana", "motorhome", "yate", "velero", "lancha", "bote", "canoa",
+        "kayak", "submarino", "helicóptero", "avioneta", "jet", "avión", "comercial", "carga", "globo", "aerostático",
+        "dirigible", "paracaídas", "ala", "delta", "parapente", "triciclo", "patineta", "skateboard", "patines", "monopatín",
+        "silla", "ruedas", "carriola", "coche", "bebé", "carrito", "compras", "maleta", "ruedas", "carrito", "golf",
+        "esquí", "snowboard", "trineo", "moto", "nieve", "quad", "buggy", "kart", "go", "car", "formula",
+        "nascar", "rally", "moto", "gp", "bicicleta", "montaña", "bicicleta", "carretera", "bicicleta", "eléctrica"
+    ]
+};
+
+function getSecretWord(category = "aleatorio"){
+    // Si se activó "categoría aleatoria", elegir una al azar
+    if(category === "aleatorio" || randomCategoryEnabled) {
+        const availableCategories = Object.keys(wordCategories).filter(cat => cat !== "aleatorio");
+        category = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+    }
+    
+    // Obtener la lista de palabras según categoría
+    const wordList = wordCategories[category] || wordCategories["aleatorio"];
+    
+    // Resetear palabras usadas después de 100 rondas
+    if(roundsPlayed >= 100){
+        usedWords=[];
+        roundsPlayed=0;
+    }
+    
+    // Filtrar palabras ya usadas (solo de la misma categoría)
+    let available = wordList.filter(w => !usedWords.includes(w));
+    
+    // Si no hay palabras disponibles, resetear las usadas de esta categoría
+    if(available.length === 0) {
+        usedWords = usedWords.filter(w => !wordList.includes(w));
+        available = wordList;
+    }
+    
+    let word = available[Math.floor(Math.random()*available.length)];
+    usedWords.push(word);
+    roundsPlayed++;
+    localStorage.setItem("usedWords", JSON.stringify(usedWords));
+    localStorage.setItem("roundsPlayed", JSON.stringify(roundsPlayed));
+    return word;
+}
+
+/* FUNCIÓN DE PISTA */
+function getHint(word){
+    if(word.length == 1) return word;
+    return word[0] + "   " + word[word.length-1];
+}
+
+function getRandomImpostors(numPlayers){
+    let min = 1;
+    let max = numPlayers - 1;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function createNames(){
+    const num=document.getElementById("numPlayers").value;
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("names").classList.remove("hidden");
+    let html="";
+    for(let i=0;i<num;i++){
+        let value=savedNames[i]||"";
+        html+=`<input placeholder="Jugador ${i+1}" id="name${i}" value="${value}"><br>`;
+    }
+    document.getElementById("nameInputs").innerHTML=html;
+}
+
+function startGame(){
+    const num=parseInt(document.getElementById("numPlayers").value);
+    let impostors;
+const randomMode = document.getElementById("randomImpostors").checked;
+
+if(randomMode){
+    impostors = getRandomImpostors(num);
+}else{
+    impostors = Math.min(parseInt(document.getElementById("numImpostors").value), num);
+}
+    players=[]; savedNames=[];
+    for(let i=0;i<num;i++){
+        let name=document.getElementById("name"+i).value||"Jugador "+(i+1);
+        players.push(name);
+        savedNames.push(name);
+    }
+    localStorage.setItem("savedNames",JSON.stringify(savedNames));
+
+    // Obtener categoría seleccionada
+selectedCategory = document.getElementById("categorySelect").value;
+// Obtener palabra secreta según categoría
+secretWord = getSecretWord(selectedCategory);
+    hintEnabled = document.getElementById("enableHint").checked;
+    roles=Array(num).fill("inocente");
+
+    let indices=[];
+    while(indices.length<impostors){
+        let r=Math.floor(Math.random()*num);
+        if(!indices.includes(r)) indices.push(r);
+    }
+    indices.forEach(i=>roles[i]="impostor");
+
+    currentPlayer=0;
+    document.getElementById("names").classList.add("hidden");
+    document.getElementById("roleScreen").classList.remove("hidden");
+    showTurn();
+}
+
+function showTurn(){
+    document.getElementById("playerTurn").innerText="🎮 Turno de: "+players[currentPlayer];
+    document.getElementById("roleResult").classList.add("hidden");
+}
+
+function showRole(){
+    const div=document.getElementById("roleResult");
+    if(roles[currentPlayer]=="impostor"){
+
+        if(hintEnabled){
+            let hint = getHint(secretWord);
+            div.innerHTML = "😈 ERES IMPOSTOR<br>No conoces la palabra<br><br>💡 Pista:<br><b>"+hint+"</b>";
+        }else{
+            div.innerHTML = "😈 ERES IMPOSTOR<br>No conoces la palabra";
+        }
+
+    }else{
+        div.innerHTML="😇 ERES INOCENTE<br><b>"+secretWord+"</b>";
+    }
+    div.classList.remove("hidden");
+}
+
+function nextPlayer(){
+    currentPlayer++;
+    if(currentPlayer>=players.length) startTimer();
+    else showTurn();
+}
+
+function startTimer() {
+    document.getElementById("roleScreen").classList.add("hidden");
+    document.getElementById("timerScreen").classList.remove("hidden");
+    
+    let totalTime = parseInt(document.getElementById("gameTime").value) * 60;
+    remainingTime = totalTime;
+    timerPaused = false;
+    
+    const el = document.getElementById("timer");
+    const pauseBtn = document.getElementById("pauseBtn");
+    
+    // Asegurar que el botón diga "PAUSAR" al iniciar
+    pauseBtn.textContent = "⏸️ PAUSAR";
+    pauseBtn.style.background = "#444";
+    
+    // Limpiar cualquier intervalo anterior
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+    
+    timerInterval = setInterval(() => {
+        if (!timerPaused) {
+            let m = Math.floor(remainingTime / 60);
+            let s = remainingTime % 60;
+            el.innerText = `${m}:${s < 10 ? "0" : ""}${s}`;
+            
+            // Cambiar color cuando queden 30 segundos
+            if (remainingTime <= 30) {
+                el.style.color = "#ff4444";
+                el.style.textShadow = "0 0 12px #ff0000";
+            }
+            
+            remainingTime--;
+            
+            if (remainingTime < 0) {
+                clearInterval(timerInterval);
+                showEnd();
+            }
+        }
+    }, 1000);
+}
+
+function togglePause() {
+    timerPaused = !timerPaused;
+    const pauseBtn = document.getElementById("pauseBtn");
+    
+    if (timerPaused) {
+        pauseBtn.textContent = "▶️ REANUDAR";
+        pauseBtn.style.background = "#2a7";
+        document.getElementById("timer").style.opacity = "0.7";
+    } else {
+        pauseBtn.textContent = "⏸️ PAUSAR";
+        pauseBtn.style.background = "#444";
+        document.getElementById("timer").style.opacity = "1";
+    }
+}
+
+function stopTimer() {
+    // Detener el temporizador
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    
+    // Ir directamente a la pantalla final
+    showEnd();
+}
+
+function showEnd(){
+    document.getElementById("timerScreen").classList.add("hidden");
+    document.getElementById("endScreen").classList.remove("hidden");
+}
+
+function revealImpostors(){
+    let list=[];
+    for(let i=0;i<roles.length;i++){
+        if(roles[i]=="impostor") list.push("😈 "+players[i]);
+    }
+    const div=document.getElementById("impostorList");
+    div.innerHTML=list.join("<br>");
+    div.classList.remove("hidden");
+}
+
+function restartGame(){
+    // Si categoría aleatoria está activada, cambiar categoría automáticamente
+    if(randomCategoryEnabled) {
+        const categories = Object.keys(wordCategories).filter(cat => cat !== "aleatorio");
+        selectedCategory = categories[Math.floor(Math.random() * categories.length)];
+        
+        // Actualizar visualmente el select (aunque esté deshabilitado)
+        document.getElementById("categorySelect").value = selectedCategory;
+    }
+    
+    document.getElementById("impostorList").classList.add("hidden");
+    document.getElementById("endScreen").classList.add("hidden");
+    document.getElementById("setup").classList.remove("hidden");
+}
+/* ===== FUNCIONES PARA VOLVER ATRÁS ===== */
+function goBack(fromScreen) {
+    // Ocultar pantalla actual
+    document.getElementById(fromScreen).classList.add("hidden");
+    
+    // Mostrar pantalla anterior según desde dónde venimos
+    if(fromScreen === "names") {
+        document.getElementById("setup").classList.remove("hidden");
+    } else if(fromScreen === "roleScreen") {
+        // Detener temporizador si existe (por si acaso)
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        
+        document.getElementById("names").classList.remove("hidden");
+        // Mostrar los nombres que ya habíamos ingresado
+        for(let i = 0; i < players.length; i++) {
+            document.getElementById("name"+i).value = players[i];
+        }
+    }
+    // NOTA: No manejamos 'setup' aquí porque es la pantalla inicial
+}
+function goToSetup() {
+    // Detener el temporizador si está activo
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    
+    // Ocultar pantalla actual
+    document.getElementById("endScreen").classList.add("hidden");
+    
+    // Mostrar configuración
+    document.getElementById("setup").classList.remove("hidden");
+}
+toggleImpostorInput();
+// Inicializar el switch de categoría aleatoria
+toggleRandomCategory();
+</script>
+</body>
+</html>
