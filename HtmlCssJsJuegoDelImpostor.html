@@ -185,6 +185,12 @@ button:hover{
 </label>
 <p style="margin-top:6px;">🎲 Modo aleatorio</p>
 
+<p>🤝 ¿Aliado del impostor?</p>
+<label class="switch">
+  <input type="checkbox" id="enableAlly">
+  <span class="slider"></span>
+</label>
+<p style="margin-top:6px;">🤝 Activar aliado</p>
 <!-- NUEVA SECCIÓN: SELECCIÓN DE CATEGORÍA -->
 <p>📁 Categoría de palabras</p>
 <select id="categorySelect" style="padding:8px; border-radius:10px; background:#111; color:white; font-family:'Orbitron'; margin:10px 0;">
@@ -246,7 +252,7 @@ button:hover{
 </div>
 
 <script>
-let players=[], roles=[], currentPlayer=0, secretWord="", hintEnabled=true;
+let players=[], roles=[], currentPlayer=0, secretWord="", hintEnabled=true, allyEnabled=false;
 // AGREGAR ESTAS VARIABLES:
 let timerPaused = false;
 let remainingTime = 0;
@@ -428,13 +434,17 @@ function createNames(){
 function startGame(){
     const num=parseInt(document.getElementById("numPlayers").value);
     let impostors;
-const randomMode = document.getElementById("randomImpostors").checked;
-
-if(randomMode){
-    impostors = getRandomImpostors(num);
-}else{
-    impostors = Math.min(parseInt(document.getElementById("numImpostors").value), num);
-}
+    const randomMode = document.getElementById("randomImpostors").checked;
+    
+    if(randomMode){
+        impostors = getRandomImpostors(num);
+    }else{
+        impostors = Math.min(parseInt(document.getElementById("numImpostors").value), num);
+    }
+    
+    // Obtener si está activado el aliado
+    allyEnabled = document.getElementById("enableAlly").checked;
+    
     players=[]; savedNames=[];
     for(let i=0;i<num;i++){
         let name=document.getElementById("name"+i).value||"Jugador "+(i+1);
@@ -444,19 +454,34 @@ if(randomMode){
     localStorage.setItem("savedNames",JSON.stringify(savedNames));
 
     // Obtener categoría seleccionada
-selectedCategory = document.getElementById("categorySelect").value;
-// Obtener palabra secreta según categoría
-secretWord = getSecretWord(selectedCategory);
+    selectedCategory = document.getElementById("categorySelect").value;
+    // Obtener palabra secreta según categoría
+    secretWord = getSecretWord(selectedCategory);
     hintEnabled = document.getElementById("enableHint").checked;
+    
+    // Inicializar todos como inocentes
     roles=Array(num).fill("inocente");
-
+    
+    // Asignar impostores
     let indices=[];
     while(indices.length<impostors){
         let r=Math.floor(Math.random()*num);
         if(!indices.includes(r)) indices.push(r);
     }
+    
+    // Asignar roles de impostor
     indices.forEach(i=>roles[i]="impostor");
-
+    
+    // Asignar aliado (si está habilitado)
+    if(allyEnabled && num >= 4) { // Mínimo 4 jugadores para tener aliado
+        let allyIndex;
+        do {
+            allyIndex = Math.floor(Math.random()*num);
+        } while(roles[allyIndex] === "impostor"); // No puede ser un impostor
+        
+        roles[allyIndex] = "aliado";
+    }
+    
     currentPlayer=0;
     document.getElementById("names").classList.add("hidden");
     document.getElementById("roleScreen").classList.remove("hidden");
@@ -470,16 +495,35 @@ function showTurn(){
 
 function showRole(){
     const div=document.getElementById("roleResult");
-    if(roles[currentPlayer]=="impostor"){
-
+    const currentRole = roles[currentPlayer];
+    
+    if(currentRole == "impostor"){
         if(hintEnabled){
             let hint = getHint(secretWord);
             div.innerHTML = "😈 ERES IMPOSTOR<br>No conoces la palabra<br><br>💡 Pista:<br><b>"+hint+"</b>";
         }else{
             div.innerHTML = "😈 ERES IMPOSTOR<br>No conoces la palabra";
         }
-
-    }else{
+    } 
+    else if(currentRole == "aliado") {
+        // Mostrar aliado: conoce la palabra y sabe quiénes son los impostores
+        let impostorsList = [];
+        for(let i = 0; i < roles.length; i++) {
+            if(roles[i] == "impostor") {
+                impostorsList.push("😈 " + players[i]);
+            }
+        }
+        
+        if(impostorsList.length > 0) {
+            div.innerHTML = "🤝 ERES ALIADO DEL IMPOSTOR<br><br>" +
+                           "📝 Palabra secreta: <b>"+secretWord+"</b><br><br>" +
+                           "🕵️ Los impostores son:<br>" + impostorsList.join("<br>");
+        } else {
+            div.innerHTML = "🤝 ERES ALIADO DEL IMPOSTOR<br><br>" +
+                           "📝 Palabra secreta: <b>"+secretWord+"</b>";
+        }
+    }
+    else {
         div.innerHTML="😇 ERES INOCENTE<br><b>"+secretWord+"</b>";
     }
     div.classList.remove("hidden");
@@ -565,12 +609,27 @@ function showEnd(){
 }
 
 function revealImpostors(){
-    let list=[];
+    let impostorList = [];
+    let allyList = [];
+    
     for(let i=0;i<roles.length;i++){
-        if(roles[i]=="impostor") list.push("😈 "+players[i]);
+        if(roles[i]=="impostor") impostorList.push("😈 "+players[i]);
+        if(roles[i]=="aliado") allyList.push("🤝 "+players[i]);
     }
+    
     const div=document.getElementById("impostorList");
-    div.innerHTML=list.join("<br>");
+    let html = "";
+    
+    if(impostorList.length > 0) {
+        html += "<strong>😈 IMPOSTORES:</strong><br>" + impostorList.join("<br>");
+    }
+    
+    if(allyList.length > 0) {
+        if(impostorList.length > 0) html += "<br><br>";
+        html += "<strong>🤝 ALIADO(S):</strong><br>" + allyList.join("<br>");
+    }
+    
+    div.innerHTML = html;
     div.classList.remove("hidden");
 }
 
