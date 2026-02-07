@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escáner QR Universal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        :root { --p: #4f46e5; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #1e293b; }
+        .card { background: white; max-width: 500px; width: 100%; padding: 25px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center; }
+        .btn-main { display: block; background: var(--p); color: white; padding: 16px; border-radius: 16px; cursor: pointer; font-weight: bold; margin: 20px 0; border: none; width: 100%; font-size: 1rem; }
+        #result-card { margin-top: 20px; padding: 20px; border-radius: 16px; background: #fff; border: 1px solid #e2e8f0; text-align: left; display: none; animation: fadeIn 0.3s; }
+        .type-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+        .type-text { background: #e0e7ff; color: #4338ca; }
+        .type-link { background: #dcfce7; color: #166534; }
+        .type-wifi { background: #fef9c3; color: #854d0e; }
+        .content-area { font-family: monospace; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; word-break: break-all; margin-bottom: 15px; font-size: 0.95rem; }
+        .action-btn { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; margin-right: 10px; transition: 0.2s; }
+        .action-btn:hover { background: #e2e8f0; }
+        #qr-input { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="margin:0">Escáner Universal</h2>
+    <p style="color: #64748b; margin-top: 8px;">Cualquier formato: Links, Wi-Fi, Texto, etc.</p>
+    
+    <label for="qr-input" class="btn-main">📂 Seleccionar de Galería</label>
+    <input type="file" id="qr-input" accept="image/*">
+
+    <div id="loading" style="display:none">⌛ Procesando...</div>
+
+    <div id="result-card">
+        <div id="badge" class="type-badge"></div>
+        <div id="content" class="content-area"></div>
+        <div id="actions">
+            <button class="action-btn" onclick="copyText()">📋 Copiar</button>
+            <span id="extra-action"></span>
+        </div>
+    </div>
+</div>
+
+<div id="reader" style="display:none"></div>
+
+<script>
+    const qrInput = document.getElementById('qr-input');
+    const resultCard = document.getElementById('result-card');
+    const badge = document.getElementById('badge');
+    const content = document.getElementById('content');
+    const extraAction = document.getElementById('extra-action');
+    const loading = document.getElementById('loading');
+    
+    const html5QrCode = new Html5Qrcode("reader");
+
+    qrInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        loading.style.display = "block";
+        resultCard.style.display = "none";
+
+        html5QrCode.scanFile(file, true)
+            .then(decodedText => {
+                loading.style.display = "none";
+                resultCard.style.display = "block";
+                content.innerText = decodedText;
+                extraAction.innerHTML = "";
+
+                // LÓGICA UNIVERSAL DE DETECCIÓN
+                if (decodedText.startsWith("http")) {
+                    // Es un ENLACE
+                    badge.innerText = "Enlace Web";
+                    badge.className = "type-badge type-link";
+                    extraAction.innerHTML = `<button class="action-btn" style="color:green" onclick="window.open('${decodedText}', '_blank')">🌐 Abrir Link</button>`;
+                } 
+                else if (decodedText.startsWith("WIFI:")) {
+                    // Es un WIFI
+                    badge.innerText = "Configuración Wi-Fi";
+                    badge.className = "type-badge type-wifi";
+                    // Intentamos extraer solo la clave para que sea fácil copiarla
+                    const pass = decodedText.match(/P:(.*?);/);
+                    if(pass) content.innerText = `Contraseña: ${pass[1]}\n\n(Bruto: ${decodedText})`;
+                } 
+                else {
+                    // Es TEXTO plano u otro formato
+                    badge.innerText = "Texto / Datos";
+                    badge.className = "type-badge type-text";
+                }
+            })
+            .catch(err => {
+                loading.style.display = "none";
+                alert("No se encontró un código QR claro en esta imagen.");
+            });
+    });
+
+    function copyText() {
+        const text = content.innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("¡Copiado al portapapeles!");
+        });
+    }
+</script>
+
+</body>
+</html>
