@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>TERMINAL OVERLOAD: CRITICAL FAILURE</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        /* ACCESS DENIED: Pulso lento y amenazante */
+        #alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #FFF;
+            font-size: 7vw;
+            font-weight: bold;
+            border: 6px solid #FFF;
+            padding: 40px 80px;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            text-shadow: 0 0 25px #FFF;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.2s ease-in-out; 
+        }
+
+        /* Ruido de TV vieja - Agresivo */
+        #static {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-radial-gradient(#000 0 0.0001%, #fff 0 0.0002%) 50% 0/2500px 2500px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            mix-blend-mode: overlay;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="alert">ACCESS DENIED</div>
+    <div id="static"></div>
+    <canvas id="matrix"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        const alertBox = document.getElementById('alert');
+        const staticLayer = document.getElementById('static');
+
+        let width, height, columns;
+        const fontSize = 22; 
+        let drops = [];
+        let frameCount = 0;
+
+        class Drop {
+            constructor(x) {
+                this.x = x;
+                this.y = Math.random() * -height;
+                this.speed = Math.random() * 7 + 4;
+                this.symbols = [];
+                this.length = Math.floor(Math.random() * 20 + 10);
+            }
+
+            update() {
+                this.y += this.speed;
+                if (Math.random() > 0.4) {
+                    this.symbols.unshift(Math.random() > 0.5 ? "1" : "0");
+                    if (this.symbols.length > this.length) this.symbols.pop();
+                }
+                if (this.y > height + (this.length * fontSize)) {
+                    this.y = -fontSize;
+                    this.symbols = [];
+                }
+            }
+
+            draw(isGlitch, glitchX, scaleFactor) {
+                for (let i = 0; i < this.symbols.length; i++) {
+                    const symbolY = this.y - (i * fontSize);
+                    if (symbolY < 0 || symbolY > height) continue;
+
+                    // Ajustar tamaño si hay glitch
+                    const currentSize = isGlitch ? fontSize * scaleFactor : fontSize;
+                    ctx.font = `bold ${currentSize}px monospace`;
+
+                    if (i === 0) {
+                        ctx.fillStyle = "#FFF";
+                        ctx.shadowBlur = isGlitch ? 30 : 10;
+                        ctx.shadowColor = "#FFF";
+                    } else {
+                        const alpha = 1 - (i / this.length);
+                        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                        ctx.shadowBlur = 0;
+                    }
+
+                    // Posición con distorsión lateral
+                    const xPos = this.x + glitchX;
+                    ctx.fillText(this.symbols[i], xPos, symbolY);
+                }
+            }
+        }
+
+        function init() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            columns = Math.floor(width / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) drops.push(new Drop(i * fontSize));
+        }
+
+        function animate() {
+            frameCount++;
+
+            // Control de Alerta Lenta
+            if (frameCount % 400 < 200) {
+                alertBox.style.opacity = "1";
+            } else {
+                alertBox.style.opacity = "0";
+            }
+
+            // Configuración de Glitch Agresivo
+            let isGlitch = Math.random() > 0.93;
+            let glitchX = 0;
+            let scaleFactor = 1;
+
+            if (isGlitch) {
+                glitchX = (Math.random() - 0.5) * 200; // Salto horizontal brutal
+                scaleFactor = Math.random() * 2.5 + 0.5; // Los números se encogen o crecen
+                staticLayer.style.opacity = Math.random() * 0.4;
+                canvas.style.filter = `invert(${Math.random() > 0.9 ? 1 : 0}) contrast(300%)`;
+            } else {
+                staticLayer.style.opacity = "0";
+                canvas.style.filter = "contrast(120%) brightness(100%)";
+            }
+
+            // Fondo con rastro denso
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            drops.forEach(drop => {
+                drop.update();
+                // El glitch afecta aleatoriamente a las gotas para que no sea uniforme
+                const applyGlitch = isGlitch && Math.random() > 0.3;
+                drop.draw(applyGlitch, applyGlitch ? glitchX : 0, scaleFactor);
+            });
+
+            // Flash de pantalla blanca aleatorio para "corte de señal"
+            if (isGlitch && Math.random() > 0.98) {
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        animate();
+    </script>
+</body>
+</html>
