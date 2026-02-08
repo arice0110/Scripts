@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Woody Sort Solver Pro - Editor Completo</title>
+    <style>
+        :root {
+            --wood-dark: #3e2723;
+            --wood-light: #8d6e63;
+            --accent: #ffd54f;
+            --delete: #e53935;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #5d4037;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .step-display {
+            font-size: 1.3rem;
+            margin: 15px;
+            color: var(--accent);
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .game-board {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: var(--wood-light);
+            padding: 40px 20px;
+            border-radius: 20px;
+            border: 8px solid var(--wood-dark);
+            min-height: 100px;
+        }
+        .tube {
+            width: 60px;
+            border: 4px solid #fff;
+            border-top: none;
+            border-radius: 0 0 30px 30px;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .ball {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-top: 5px;
+            border: 2px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .ball.empty { border: 2px dashed rgba(255,255,255,0.2); }
+        .ball:hover { transform: scale(1.1); border-color: white; }
+
+        /* Controles */
+        .panel {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            width: 100%;
+            max-width: 900px;
+        }
+        button {
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--accent);
+            color: var(--wood-dark);
+            box-shadow: 0 4px 0 #c7a500;
+        }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #c7a500; }
+        .btn-red { background: var(--delete); color: white; box-shadow: 0 4px 0 #b71c1c; }
+        .btn-solve { background: #4caf50; color: white; box-shadow: 0 4px 0 #2e7d32; grid-column: span 2; font-size: 1.2rem; }
+
+        /* Selector */
+        #picker {
+            display: none;
+            position: absolute;
+            background: #222;
+            padding: 15px;
+            border-radius: 15px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            border: 2px solid var(--accent);
+            z-index: 1000;
+        }
+        .color-dot { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+        .color-dot:hover { border-color: white; }
+    </style>
+</head>
+<body>
+
+    <h2>Woody Sort Master Solver</h2>
+    <div class="step-display" id="status">Configura el tablero</div>
+
+    <div class="game-board" id="board"></div>
+
+    <div id="picker"></div>
+
+    <div class="panel">
+        <button onclick="addTube()">+ Añadir Tubo</button>
+        <button class="btn-red" onclick="removeTube()">- Quitar Tubo</button>
+        <button onclick="changeCap(1)">+ Espacio Altura</button>
+        <button class="btn-red" onclick="changeCap(-1)">- Espacio Altura</button>
+        
+        <button onclick="moveStep(-1)" id="prevBtn" disabled>⬅ Paso Atrás</button>
+        <button onclick="moveStep(1)" id="nextBtn" disabled>Paso Adelante ➡</button>
+        
+        <button onclick="startSolve()" class="btn-solve" id="solveBtn">RESOLVER NIVEL</button>
+        <button onclick="window.location.reload()" class="btn-red" style="grid-column: span 2;">REINICIAR TODO</button>
+    </div>
+
+<script>
+    const COLORS = [
+        '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', 
+        '#00FFFF', '#FFA500', '#800080', '#008000', '#FFC0CB',
+        '#A52A2A', '#808080', '#FFFFFF', '#000000', '#40E0D0',
+        '#FFD700', '#ADFF2F', '#D2691E', '#1E90FF', '#FF4500'
+    ];
+
+    let tubes = [[], [], [], []];
+    let capacity = 4;
+    let solution = [];
+    let currentStepIdx = -1;
+    let target = null;
+
+    // Crear Selector de 20 colores
+    const picker = document.getElementById('picker');
+    COLORS.forEach((color, idx) => {
+        const dot = document.createElement('div');
+        dot.className = 'color-dot';
+        dot.style.backgroundColor = color;
+        dot.onclick = () => setColor(idx);
+        picker.appendChild(dot);
+    });
+    const del = document.createElement('div');
+    del.innerHTML = "❌";
+    del.className = 'color-dot';
+    del.style = "display:flex; align-items:center; justify-content:center; background:#444; color:white;";
+    del.onclick = () => setColor(null);
+    picker.appendChild(del);
+
+    function render() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        tubes.forEach((tube, tIdx) => {
+            const tubeDiv = document.createElement('div');
+            tubeDiv.className = 'tube';
+            tubeDiv.style.height = (capacity * 55) + "px";
+            
+            for(let i = 0; i < capacity; i++) {
+                const ball = document.createElement('div');
+                ball.className = 'ball' + (tube[i] === undefined ? ' empty' : '');
+                if(tube[i] !== undefined) ball.style.backgroundColor = COLORS[tube[i]];
+                ball.onclick = (e) => openPicker(e, tIdx, i);
+                tubeDiv.appendChild(ball);
+            }
+            board.appendChild(tubeDiv);
+        });
+    }
+
+    function openPicker(e, tIdx, bIdx) {
+        if(currentStepIdx !== -1) return;
+        target = {tIdx, bIdx};
+        picker.style.display = 'grid';
+        picker.style.left = Math.min(e.pageX, window.innerWidth - 250) + 'px';
+        picker.style.top = e.pageY + 'px';
+        e.stopPropagation();
+    }
+
+    function setColor(idx) {
+        if(idx === null) {
+            tubes[target.tIdx].splice(target.bIdx, 1);
+        } else {
+            tubes[target.tIdx][target.bIdx] = idx;
+        }
+        picker.style.display = 'none';
+        render();
+    }
+
+    document.onclick = () => picker.style.display = 'none';
+
+    // --- NUEVAS FUNCIONES DE EDICIÓN ---
+    function addTube() { tubes.push([]); render(); }
+    function removeTube() { if(tubes.length > 1) { tubes.pop(); render(); } }
+    function changeCap(val) {
+        capacity = Math.max(1, capacity + val);
+        tubes = tubes.map(t => t.slice(0, capacity));
+        render();
+    }
+
+    // --- SOLVER (BFS) ---
+    function startSolve() {
+        document.getElementById('status').innerText = "Calculando...";
+        setTimeout(() => {
+            // Limpiar datos undefined para el solver
+            const cleanTubes = tubes.map(t => t.filter(b => b !== undefined));
+            const res = solve(cleanTubes);
+            if(res) {
+                solution = res;
+                currentStepIdx = 0;
+                tubes = cleanTubes; // Sincronizar estado
+                updateUI();
+            } else {
+                alert("No tiene solución. Asegúrate de tener grupos de 4 bolas del mismo color.");
+                document.getElementById('status').innerText = "Error: Sin solución";
+            }
+        }, 50);
+    }
+
+    function solve(startTubes) {
+        let startS = JSON.stringify(startTubes);
+        let queue = [{ s: startS, path: [] }];
+        let seen = new Set([startS]);
+
+        while(queue.length > 0) {
+            let {s, path} = queue.shift();
+            let curr = JSON.parse(s);
+            if(curr.every(t => t.length === 0 || (t.length === capacity && t.every(b => b === t[0])))) return path;
+
+            for(let i=0; i<curr.length; i++) {
+                for(let j=0; j<curr.length; j++) {
+                    if(i === j) continue;
+                    let f = curr[i], t = curr[j];
+                    if(f.length > 0 && t.length < capacity && (t.length === 0 || t[t.length-1] === f[f.length-1])) {
+                        let next = JSON.parse(JSON.stringify(curr));
+                        next[j].push(next[i].pop());
+                        let nextS = JSON.stringify(next);
+                        if(!seen.has(nextS)) {
+                            seen.add(nextS);
+                            queue.push({s: nextS, path: [...path, {from: i, to: j}]});
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function moveStep(dir) {
+        if(dir === 1 && currentStepIdx < solution.length) {
+            const m = solution[currentStepIdx++];
+            tubes[m.to].push(tubes[m.from].pop());
+        } else if(dir === -1 && currentStepIdx > 0) {
+            const m = solution[--currentStepIdx];
+            tubes[m.from].push(tubes[m.to].pop());
+        }
+        render();
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('status').innerText = `Movimiento: ${currentStepIdx} / ${solution.length}`;
+        document.getElementById('prevBtn').disabled = currentStepIdx <= 0;
+        document.getElementById('nextBtn').disabled = currentStepIdx >= solution.length;
+        document.getElementById('solveBtn').disabled = true;
+    }
+
+    render();
+</script>
+</body>
+  </html>
+
