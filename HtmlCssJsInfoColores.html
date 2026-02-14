@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extractor de Color Total</title>
+    <style>
+        /* CSS INTEGRADO */
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: #1e293b;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 { margin-bottom: 0.5rem; color: #0f172a; }
+        p { color: #64748b; margin-bottom: 1.5rem; }
+
+        .btn-upload {
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-block;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-upload:hover { transform: scale(1.02); }
+
+        .canvas-container {
+            margin-top: 25px;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            background: #eee;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            cursor: crosshair;
+            max-width: 100%;
+            display: block;
+        }
+
+        .result-grid {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 20px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: 15px;
+            display: none; /* Oculto hasta que se suba imagen */
+        }
+
+        .color-preview {
+            width: 100%;
+            height: 100px;
+            border-radius: 12px;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .data-row {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .code-field {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 4px 0;
+            font-family: monospace;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid #cbd5e1;
+        }
+
+        .code-field:hover { background: #e2e8f0; }
+        .code-field span { font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Color ADN Explorer</h1>
+    <p>Sube una foto y toca cualquier píxel para obtener su información completa.</p>
+    
+    <input type="file" id="upload" accept="image/*" hidden>
+    <label for="upload" class="btn-upload">Seleccionar de Galería</label>
+
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+        <span id="placeholderText">No hay imagen seleccionada</span>
+    </div>
+
+    <div class="result-grid" id="resultGrid">
+        <div id="preview" class="color-preview"></div>
+        <div class="data-row">
+            <div class="code-field" onclick="copyText('hex')">HEX: <span id="hex">#000000</span></div>
+            <div class="code-field" onclick="copyText('rgb')">RGB: <span id="rgb">rgb(0,0,0)</span></div>
+            <div class="code-field" onclick="copyText('hsl')">HSL: <span id="hsl">0, 0%, 0%</span></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* JAVASCRIPT INTEGRADO */
+    const upload = document.getElementById('upload');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const resultGrid = document.getElementById('resultGrid');
+    const placeholder = document.getElementById('placeholderText');
+
+    upload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                // Ajustar tamaño del canvas manteniendo proporciones
+                const maxWidth = 800;
+                const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                placeholder.style.display = 'none';
+                resultGrid.style.display = 'grid';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const [r, g, b] = pixel;
+
+        updateUI(r, g, b);
+    });
+
+    function updateUI(r, g, b) {
+        const hex = rgbToHex(r, g, b);
+        const hsl = rgbToHsl(r, g, b);
+
+        document.getElementById('preview').style.backgroundColor = hex;
+        document.getElementById('hex').innerText = hex.toUpperCase();
+        document.getElementById('rgb').innerText = `rgb(${r}, ${g}, ${b})`;
+        document.getElementById('hsl').innerText = hsl;
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) h = s = 0;
+        else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return `${Math.round(h * 360)}°, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%`;
+    }
+
+    function copyText(id) {
+        const text = document.getElementById(id).innerText;
+        navigator.clipboard.writeText(text);
+        alert('Copiado: ' + text);
+    }
+</script>
+
+</body>
+  </html>
+
