@@ -2,57 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Editor Pro - Zero Flicker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultra Editor Pro - Mobile Edition</title>
     <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; height: 100vh; font-family: sans-serif; background: #0f0f0f; color: white; overflow: hidden; }
+        :root { --bg: #0a0a0b; --panel: #16161a; --accent: #007aff; --text: #e1e1e6; --border: #29292e; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
 
         /* --- CONFIGURACIÓN --- */
         #setup-screen {
-            position: absolute; width: 100%; height: 100%; background: #121212;
-            display: flex; flex-direction: column; z-index: 100; padding: 20px;
+            position: absolute; width: 100%; height: 100%; background: var(--bg);
+            display: flex; flex-direction: column; z-index: 100; padding: 25px;
         }
-        .setup-area { flex: 1; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .setup-area textarea { flex: 1; background: #1e1e1e; color: #ccc; border: 1px solid #333; padding: 10px; border-radius: 5px; font-family: monospace; }
-        .btn-start { background: #007acc; color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; }
+        .setup-area { flex: 1; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .setup-area label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); font-weight: 700; }
+        .setup-area textarea { flex: 1; background: var(--panel); color: #ccc; border: 1px solid var(--border); padding: 12px; border-radius: 12px; font-family: 'Fira Code', monospace; font-size: 13px; outline: none; }
+        .btn-start { background: var(--accent); color: white; border: none; padding: 18px; font-size: 16px; font-weight: bold; border-radius: 14px; box-shadow: 0 4px 15px rgba(0,122,255,0.3); }
 
-        /* --- EDITOR PRINCIPAL --- */
+        /* --- INTERFAZ PRINCIPAL --- */
         #main-editor { display: none; flex-direction: column; height: 100vh; }
-        #preview-container { flex: 1; background: white; position: relative; }
+        
+        #preview-container { 
+            flex: 1.2; background: #fff; margin: 10px; border-radius: 15px; 
+            overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 4px solid var(--panel);
+        }
         #preview { width: 100%; height: 100%; border: none; }
         
-        #editor-container { flex: 1; display: flex; flex-direction: column; border-top: 2px solid #333; background: #1e1e1e; }
-        .tabs { display: flex; background: #252526; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: #2d2d2d; color: #888; font-weight: bold; }
-        .tab-btn.active { background: #1e1e1e; color: #007acc; border-bottom: 2px solid #007acc; }
+        #editor-panel { 
+            flex: 1; display: flex; flex-direction: column; 
+            background: var(--panel); border-top-left-radius: 25px; border-top-right-radius: 25px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .tabs { display: flex; padding: 10px 15px 0; gap: 5px; }
+        .tab-btn { 
+            flex: 1; padding: 12px; border: none; background: transparent; 
+            color: #666; font-weight: 600; font-size: 13px; border-radius: 10px 10px 0 0;
+            transition: 0.3s;
+        }
+        .tab-btn.active { background: var(--bg); color: var(--accent); }
 
-        .code-area { flex: 1; display: none; }
+        .code-area { flex: 1; display: none; padding: 5px; background: var(--bg); }
         .code-area.active { display: block; }
+        
         .display-editor { 
-            width: 100%; height: 100%; background: #1e1e1e; color: #d4d4d4; 
-            padding: 15px; border: none; font-family: 'Consolas', monospace; 
-            font-size: 14px; resize: none; outline: none;
+            width: 100%; height: 100%; background: transparent; color: #9cdcfe; 
+            padding: 15px; border: none; font-family: 'Consolas', 'Courier New', monospace; 
+            font-size: 14px; resize: none; outline: none; line-height: 1.6;
         }
     </style>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h2 style="margin-top:0">Configura tu Video</h2>
+        <h2 style="text-align:center; font-weight: 800;">PRO VIDEO EDITOR</h2>
         <div class="setup-area">
-            <label>HTML</label><textarea id="pre-html" placeholder="Pega aquí..."></textarea>
-            <label>CSS</label><textarea id="pre-css" placeholder="Pega aquí..."></textarea>
-            <label>JS</label><textarea id="pre-js" placeholder="Pega aquí..."></textarea>
+            <label>Estructura HTML</label><textarea id="pre-html" placeholder="<html>..."></textarea>
+            <label>Estilos CSS</label><textarea id="pre-css" placeholder="body { ... }"></textarea>
+            <label>Lógica JS</label><textarea id="pre-js" placeholder="function() { ... }"></textarea>
         </div>
-        <button class="btn-start" onclick="startEditor()">CONTINUAR AL EDITOR</button>
+        <button class="btn-start" onclick="startEditor()">INICIAR MODO GRABACIÓN</button>
     </div>
 
     <div id="main-editor">
         <div id="preview-container">
             <iframe id="preview"></iframe>
         </div>
-        <div id="editor-container">
+        <div id="editor-panel">
             <div class="tabs">
                 <button class="tab-btn active" onclick="openTab(event, 'html-tab')">HTML</button>
                 <button class="tab-btn" onclick="openTab(event, 'css-tab')">CSS</button>
@@ -62,10 +79,10 @@
                 <textarea id="html-code" class="display-editor" readonly onclick="typeCode('html')"></textarea>
             </div>
             <div id="css-tab" class="code-area">
-                <textarea id="css-code" class="display-editor" readonly onclick="typeCode('css')"></textarea>
+                <textarea id="css-code" class="display-editor" readonly onclick="typeCode('css')" style="color: #ce9178;"></textarea>
             </div>
             <div id="js-tab" class="code-area">
-                <textarea id="js-code" class="display-editor" readonly onclick="typeCode('js')"></textarea>
+                <textarea id="js-code" class="display-editor" readonly onclick="typeCode('js')" style="color: #dcdcaa;"></textarea>
             </div>
         </div>
     </div>
@@ -83,9 +100,8 @@
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('main-editor').style.display = 'flex';
             
-            // Inicialización limpia del iframe
             const preview = document.getElementById('preview');
-            const initialDoc = `<html><head><style id="v-css"></style></head><body><div id="v-html"></div><script id="v-js"><\/script></body></html>`;
+            const initialDoc = `<html><head><style>body{margin:0;padding:15px;word-wrap:break-word;} *{max-width:100%;box-sizing:border-box;}</style><style id="v-css"></style></head><body><div id="v-html"></div><script id="v-js"><\/script></body></html>`;
             preview.srcdoc = initialDoc;
         }
 
@@ -104,51 +120,50 @@
             let index = 0;
 
             const interval = setInterval(() => {
-                const char = fullText[index];
-                currentCode[lang] += char;
+                currentCode[lang] += fullText[index];
                 target.value = currentCode[lang];
                 
-                typeSound.cloneNode().play();
+                const s = typeSound.cloneNode();
+                s.volume = 0.2;
+                s.play();
+
                 index++;
-                
-                updatePreviewSafe(lang, currentCode[lang]);
+                renderPreview(lang, currentCode[lang]);
 
                 if (index >= fullText.length) {
                     clearInterval(interval);
                     isTyping[lang] = false;
-                    // Al terminar JS, lo ejecutamos completo
-                    if(lang === 'js') runJS(currentCode[lang]);
                 }
                 target.scrollTop = target.scrollHeight;
             }, 40);
         }
 
-        function updatePreviewSafe(lang, code) {
+        function renderPreview(lang, code) {
             const iframe = document.getElementById('preview');
             const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
             if (!innerDoc) return;
 
+            // Lógica Universal de Seguridad: No renderiza si hay una estructura abierta
+            const isSafe = !(/[<{\[(]$|style$|script$|class$|id$/i.test(code.trim()));
+
+            if (!isSafe) return;
+
             if (lang === 'html') {
-                // Solo actualizamos el HTML si no estamos en medio de escribir una etiqueta
-                // Esto evita las "letras raras" y el parpadeo de elementos rotos
-                const cleanHTML = code.replace(/<[^>]*$/g, ''); 
                 const container = innerDoc.getElementById('v-html');
-                if (container) container.innerHTML = cleanHTML;
+                if (container) container.innerHTML = code;
             } 
             else if (lang === 'css') {
                 const styleTag = innerDoc.getElementById('v-css');
                 if (styleTag) styleTag.textContent = code;
             }
-        }
-
-        function runJS(code) {
-            const iframe = document.getElementById('preview');
-            const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
-            const oldScript = innerDoc.getElementById('v-js');
-            const newScript = innerDoc.createElement('script');
-            newScript.id = 'v-js';
-            newScript.textContent = code;
-            if(oldScript) oldScript.replaceWith(newScript);
+            else if (lang === 'js') {
+                // Ejecución universal por bloques de código
+                if (code.endsWith(';') || code.endsWith('}')) {
+                    try {
+                        iframe.contentWindow.eval(code);
+                    } catch (e) {}
+                }
+            }
         }
     </script>
 </body>
