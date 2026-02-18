@@ -3,149 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Editor Pro Mobile (Limpio)</title>
+    <title>Editor Pro - Zero Flicker</title>
     <style>
         * { box-sizing: border-box; }
-        body { margin: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; background: #121212; overflow: hidden; }
+        body { margin: 0; height: 100vh; font-family: sans-serif; background: #0f0f0f; color: white; overflow: hidden; }
 
-        /* VISTA PREVIA (Mitad superior) */
-        #preview {
-            flex: 1;
-            width: 100%;
-            background: white;
-            border: none;
+        /* --- CONFIGURACIÓN --- */
+        #setup-screen {
+            position: absolute; width: 100%; height: 100%; background: #121212;
+            display: flex; flex-direction: column; z-index: 100; padding: 20px;
         }
+        .setup-area { flex: 1; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .setup-area textarea { flex: 1; background: #1e1e1e; color: #ccc; border: 1px solid #333; padding: 10px; border-radius: 5px; font-family: monospace; }
+        .btn-start { background: #007acc; color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; }
 
-        /* CONTENEDOR DEL EDITOR (Mitad inferior) */
-        #editor-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-top: 2px solid #333;
-        }
+        /* --- EDITOR PRINCIPAL --- */
+        #main-editor { display: none; flex-direction: column; height: 100vh; }
+        #preview-container { flex: 1; background: white; position: relative; }
+        #preview { width: 100%; height: 100%; border: none; }
+        
+        #editor-container { flex: 1; display: flex; flex-direction: column; border-top: 2px solid #333; background: #1e1e1e; }
+        .tabs { display: flex; background: #252526; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #2d2d2d; color: #888; font-weight: bold; }
+        .tab-btn.active { background: #1e1e1e; color: #007acc; border-bottom: 2px solid #007acc; }
 
-        /* BARRA DE PESTAÑAS */
-        .tabs {
-            display: flex;
-            background: #1e1e1e;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: #2d2d2d;
-            color: #888;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            outline: none;
-        }
-        .tab-btn.active {
-            background: #1e1e1e;
-            color: #007acc;
-            border-bottom: 2px solid #007acc;
-        }
-
-        /* ÁREAS DE TEXTO */
-        .code-area {
-            flex: 1;
-            display: none;
-            position: relative;
-        }
-        .code-area.active {
-            display: block;
-        }
-        textarea {
-            width: 100%;
-            height: 100%;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 15px;
-            border: none;
-            font-family: 'Courier New', monospace;
-            font-size: 15px;
-            resize: none;
-            outline: none;
+        .code-area { flex: 1; display: none; }
+        .code-area.active { display: block; }
+        .display-editor { 
+            width: 100%; height: 100%; background: #1e1e1e; color: #d4d4d4; 
+            padding: 15px; border: none; font-family: 'Consolas', monospace; 
+            font-size: 14px; resize: none; outline: none;
         }
     </style>
 </head>
 <body>
 
-    <iframe id="preview"></iframe>
-
-    <div id="editor-container">
-        <div class="tabs">
-            <button class="tab-btn active" onclick="openTab(event, 'html-tab')">HTML</button>
-            <button class="tab-btn" onclick="openTab(event, 'css-tab')">CSS</button>
-            <button class="tab-btn" onclick="openTab(event, 'js-tab')">JS</button>
+    <div id="setup-screen">
+        <h2 style="margin-top:0">Configura tu Video</h2>
+        <div class="setup-area">
+            <label>HTML</label><textarea id="pre-html" placeholder="Pega aquí..."></textarea>
+            <label>CSS</label><textarea id="pre-css" placeholder="Pega aquí..."></textarea>
+            <label>JS</label><textarea id="pre-js" placeholder="Pega aquí..."></textarea>
         </div>
+        <button class="btn-start" onclick="startEditor()">CONTINUAR AL EDITOR</button>
+    </div>
 
-        <div id="html-tab" class="code-area active">
-            <textarea id="html-code" placeholder="Escribe HTML aquí..." spellcheck="false"></textarea>
+    <div id="main-editor">
+        <div id="preview-container">
+            <iframe id="preview"></iframe>
         </div>
-
-        <div id="css-tab" class="code-area">
-            <textarea id="css-code" placeholder="Escribe CSS aquí..." spellcheck="false"></textarea>
-        </div>
-
-        <div id="js-tab" class="code-area">
-            <textarea id="js-code" placeholder="Escribe JS aquí..." spellcheck="false"></textarea>
+        <div id="editor-container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="openTab(event, 'html-tab')">HTML</button>
+                <button class="tab-btn" onclick="openTab(event, 'css-tab')">CSS</button>
+                <button class="tab-btn" onclick="openTab(event, 'js-tab')">JS</button>
+            </div>
+            <div id="html-tab" class="code-area active">
+                <textarea id="html-code" class="display-editor" readonly onclick="typeCode('html')"></textarea>
+            </div>
+            <div id="css-tab" class="code-area">
+                <textarea id="css-code" class="display-editor" readonly onclick="typeCode('css')"></textarea>
+            </div>
+            <div id="js-tab" class="code-area">
+                <textarea id="js-code" class="display-editor" readonly onclick="typeCode('js')"></textarea>
+            </div>
         </div>
     </div>
 
     <script>
-        const htmlInput = document.getElementById('html-code');
-        const cssInput = document.getElementById('css-code');
-        const jsInput = document.getElementById('js-code');
-        const preview = document.getElementById('preview');
+        let finalCode = { html: '', css: '', js: '' };
+        let currentCode = { html: '', css: '', js: '' };
+        let isTyping = { html: false, css: false, js: false };
+        const typeSound = new Audio('https://www.soundjay.com/communication/typewriter-key-1.mp3');
 
-        // Cambiar entre pestañas
+        function startEditor() {
+            finalCode.html = document.getElementById('pre-html').value;
+            finalCode.css = document.getElementById('pre-css').value;
+            finalCode.js = document.getElementById('pre-js').value;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('main-editor').style.display = 'flex';
+            
+            // Inicialización limpia del iframe
+            const preview = document.getElementById('preview');
+            const initialDoc = `<html><head><style id="v-css"></style></head><body><div id="v-html"></div><script id="v-js"><\/script></body></html>`;
+            preview.srcdoc = initialDoc;
+        }
+
         function openTab(evt, tabName) {
-            const codeAreas = document.getElementsByClassName("code-area");
-            for (let i = 0; i < codeAreas.length; i++) {
-                codeAreas[i].classList.remove("active");
-            }
-            const tabBtns = document.getElementsByClassName("tab-btn");
-            for (let i = 0; i < tabBtns.length; i++) {
-                tabBtns[i].classList.remove("active");
-            }
+            document.querySelectorAll(".code-area").forEach(a => a.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
         }
 
-        // Renderizado en tiempo real
-        function update() {
-            const html = htmlInput.value;
-            const css = `<style>${cssInput.value}</style>`;
-            const js = `<script>${jsInput.value}<\/script>`;
-            
-            const fullCode = `
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        ${css}
-                    </head>
-                    <body>
-                        ${html}
-                        ${js}
-                    </body>
-                </html>
-            `;
+        function typeCode(lang) {
+            if (isTyping[lang]) return;
+            isTyping[lang] = true;
+            const target = document.getElementById(lang + '-code');
+            const fullText = finalCode[lang];
+            let index = 0;
 
-            const frameDoc = preview.contentDocument || preview.contentWindow.document;
-            frameDoc.open();
-            frameDoc.write(fullCode);
-            frameDoc.close();
+            const interval = setInterval(() => {
+                const char = fullText[index];
+                currentCode[lang] += char;
+                target.value = currentCode[lang];
+                
+                typeSound.cloneNode().play();
+                index++;
+                
+                updatePreviewSafe(lang, currentCode[lang]);
+
+                if (index >= fullText.length) {
+                    clearInterval(interval);
+                    isTyping[lang] = false;
+                    // Al terminar JS, lo ejecutamos completo
+                    if(lang === 'js') runJS(currentCode[lang]);
+                }
+                target.scrollTop = target.scrollHeight;
+            }, 40);
         }
 
-        // Eventos para actualizar al escribir
-        htmlInput.addEventListener('input', update);
-        cssInput.addEventListener('input', update);
-        jsInput.addEventListener('input', update);
+        function updatePreviewSafe(lang, code) {
+            const iframe = document.getElementById('preview');
+            const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+            if (!innerDoc) return;
 
-        // Inicializar vacío
-        update();
+            if (lang === 'html') {
+                // Solo actualizamos el HTML si no estamos en medio de escribir una etiqueta
+                // Esto evita las "letras raras" y el parpadeo de elementos rotos
+                const cleanHTML = code.replace(/<[^>]*$/g, ''); 
+                const container = innerDoc.getElementById('v-html');
+                if (container) container.innerHTML = cleanHTML;
+            } 
+            else if (lang === 'css') {
+                const styleTag = innerDoc.getElementById('v-css');
+                if (styleTag) styleTag.textContent = code;
+            }
+        }
+
+        function runJS(code) {
+            const iframe = document.getElementById('preview');
+            const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const oldScript = innerDoc.getElementById('v-js');
+            const newScript = innerDoc.createElement('script');
+            newScript.id = 'v-js';
+            newScript.textContent = code;
+            if(oldScript) oldScript.replaceWith(newScript);
+        }
     </script>
 </body>
 </html>
