@@ -2,246 +2,134 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DevStudio Ultra | Final Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Editor Pro Universal</title>
     <style>
-        :root {
-            --bg-deep: #020408;
-            --bg-panel: #0a0d14;
-            --accent: #00d2ff;
-            --accent-glow: rgba(0, 210, 255, 0.3);
-            --html: #ff4d00;
-            --css: #0070ff;
-            --js: #ffcc00;
-            --text-main: #e6edf3;
-            --text-muted: #7d8590;
-            --border: rgba(255, 255, 255, 0.08);
-        }
+        :root { --bg: #0e0e0e; --panel: #1a1a1a; --accent: #47cf73; --text: #fff; --gray: #888; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; background: var(--bg); color: var(--text); font-family: monospace; overflow: hidden; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; 
-            background: var(--bg-deep); 
-            color: var(--text-main); 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-        }
+        /* Setup */
+        #setup { position: fixed; inset: 0; z-index: 100; background: var(--bg); padding: 20px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        textarea { background: #111; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 4px; height: 80px; outline: none; }
+        #start-btn { background: var(--accent); color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 4px; margin-top: 10px; }
 
-        /* --- PANTALLA INICIAL (MASTER UI) --- */
-        #setup { 
-            padding: 20px; 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column;
-            background: radial-gradient(circle at top right, #111827, var(--bg-deep));
-        }
+        /* Editor */
+        #main { display: none; height: 100vh; flex-direction: column; }
+        .tabs { display: flex; background: #000; }
+        .tab { flex: 1; padding: 12px; border: none; background: var(--panel); color: var(--gray); font-weight: bold; font-size: 11px; border-right: 1px solid #000; }
+        .tab.active { background: var(--bg); color: #fff; border-bottom: 2px solid var(--accent); }
 
-        .brand { margin-bottom: 30px; border-left: 3px solid var(--accent); padding-left: 15px; }
-        .brand h1 { font-size: 1.4rem; letter-spacing: -0.5px; text-transform: uppercase; }
-        .brand span { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 2px; }
-
-        .input-card { 
-            background: var(--bg-panel); 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            margin-bottom: 16px; 
-            transition: transform 0.2s;
-        }
-        .input-card:focus-within { border-color: var(--accent); transform: translateY(-2px); }
-        
-        .card-header { 
-            display: flex; 
-            justify-content: space-between; 
-            padding: 10px 15px; 
-            background: rgba(0,0,0,0.2); 
-            font-size: 0.65rem; 
-            font-weight: 900; 
-        }
-        
-        textarea.input-data { 
-            width: 100%; height: 90px; background: transparent; color: #fff; 
-            border: none; padding: 15px; font-size: 13px; outline: none; resize: none;
-        }
-
-        #start-btn { 
-            width: 100%; padding: 22px; 
-            background: var(--accent); color: #000; 
-            border: none; border-radius: 12px; 
-            font-weight: 900; font-size: 1rem; 
-            text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 10px 30px var(--accent-glow);
-            margin-bottom: 40px;
-        }
-
-        /* --- EDITOR ENGINE (PRO LEVEL) --- */
-        #main-editor { display: none; flex-direction: column; height: 100vh; width: 100vw; }
-        
-        #preview-box { height: 50vh; background: #fff; position: relative; z-index: 5; }
-        iframe { width: 100%; height: 100%; border: none; }
-
-        #editor-section { height: 50vh; display: flex; flex-direction: column; background: var(--bg-panel); }
-
-        .tabs { display: flex; background: #000; height: 48px; border-top: 1px solid var(--border); }
-        .tab-btn { 
-            flex: 1; border: none; background: transparent; color: var(--text-muted); 
-            font-size: 0.7rem; font-weight: 800; position: relative; transition: 0.3s;
-        }
-        
-        .tab-btn.active { color: #fff; background: var(--bg-panel); }
-        #btn-html.active { border-top: 3px solid var(--html); }
-        #btn-css.active { border-top: 3px solid var(--css); }
-        #btn-js.active { border-top: 3px solid var(--js); }
-
-        .editor-container { flex-grow: 1; position: relative; }
-        .code-view { 
-            width: 100%; height: 100%; background: transparent; color: var(--text-main); 
-            padding: 20px; font-size: 14px; border: none; outline: none; resize: none; 
-            display: none; line-height: 1.6; white-space: pre-wrap; word-break: break-all;
-            -webkit-text-fill-color: var(--text-main);
-        }
+        .editor-container { height: 30vh; background: var(--bg); position: relative; }
+        .code-view { width: 100%; height: 100%; padding: 15px; font-size: 13px; white-space: pre-wrap; word-break: break-all; overflow-y: auto; display: none; }
         .code-view.active { display: block; }
+        .cursor { display: inline-block; width: 8px; height: 15px; background: var(--accent); animation: blink 0.7s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
 
-        /* CURSOR SYSTEM */
-        .cursor { display: inline-block; width: 8px; height: 1.2em; background: var(--accent); animation: pulse 0.8s infinite; vertical-align: middle; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+        /* Preview con Marco */
+        .preview-zone { flex: 1; background: #000; padding: 10px; display: flex; flex-direction: column; }
+        .frame-limit { flex: 1; background: #fff; border: 5px solid #333; border-radius: 4px; overflow: hidden; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
     </style>
 </head>
 <body>
 
-    <div id="setup">
-        <div class="brand">
-            <h1>DevStudio Ultra</h1>
-            <span>ULTIMATE MOBILE CORE v3.0</span>
-        </div>
+<div id="setup">
+    <h3 style="text-align:center">Editor de Código</h3>
+    <label>HTML</label><textarea id="ih"></textarea>
+    <label>CSS</label><textarea id="ic"></textarea>
+    <label>JS</label><textarea id="ij"></textarea>
+    <button id="start-btn">GENERAR EDITOR</button>
+</div>
 
-        <div class="input-card">
-            <div class="card-header" style="color: var(--html);">// INDEX.HTML</div>
-            <textarea id="src-html" class="input-data" spellcheck="false"></textarea>
-        </div>
-
-        <div class="input-card">
-            <div class="card-header" style="color: var(--css);">// STYLE.CSS</div>
-            <textarea id="src-css" class="input-data" spellcheck="false"></textarea>
-        </div>
-
-        <div class="input-card">
-            <div class="card-header" style="color: var(--js);">// SCRIPT.JS</div>
-            <textarea id="src-js" class="input-data" spellcheck="false"></textarea>
-        </div>
-
-        <button id="start-btn">Initialize Kernel</button>
+<div id="main">
+    <div class="tabs">
+        <button id="th" class="tab active" onclick="sw('h')">HTML</button>
+        <button id="tc" class="tab" onclick="sw('c')">CSS</button>
+        <button id="tj" class="tab" onclick="sw('j')">JS</button>
     </div>
-
-    <div id="main-editor">
-        <div id="preview-box"><iframe id="live-frame"></iframe></div>
-        <div id="editor-section">
-            <div class="tabs">
-                <button class="tab-btn active" id="btn-html" onclick="switchTab('html')">HTML5</button>
-                <button class="tab-btn" id="btn-css" onclick="switchTab('css')">CSS3</button>
-                <button class="tab-btn" id="btn-js" onclick="switchTab('js')">ES6+</button>
-            </div>
-            <div class="editor-container">
-                <textarea id="edit-html" class="code-view active" readonly onclick="startTyping('html')"></textarea>
-                <textarea id="edit-css" class="code-view" readonly onclick="startTyping('css')"></textarea>
-                <textarea id="edit-js" class="code-view" readonly onclick="startTyping('js')"></textarea>
-            </div>
+    <div class="editor-container">
+        <div id="vh" class="code-view active" onclick="type('h')"></div>
+        <div id="vc" class="code-view" onclick="type('c')"></div>
+        <div id="vj" class="code-view" onclick="type('j')"></div>
+    </div>
+    <div class="preview-zone">
+        <div style="font-size:10px; color:var(--gray); margin-bottom:5px;">TIEMPO REAL </div>
+        <div class="frame-limit">
+            <iframe id="ifr"></iframe>
         </div>
     </div>
+</div>
 
-    <script>
-        let content = { html: "", css: "", js: "" };
-        let isTyping = { html: false, css: false, js: false };
-        const cursorChar = "█"; 
+<script>
+    const code = { h: { raw: '', cur: '', ok: false }, c: { raw: '', cur: '', ok: false }, j: { raw: '', cur: '', ok: false } };
+    const ifr = document.getElementById('ifr');
+    let iDoc, sTag, bTag, jsT;
 
-        document.getElementById('start-btn').onclick = () => {
-            content.html = document.getElementById('src-html').value || " ";
-            content.css = document.getElementById('src-css').value || " ";
-            content.js = document.getElementById('src-js').value || " ";
-            
-            // Transición suave
-            document.getElementById('setup').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('setup').style.display = 'none';
-                document.getElementById('main-editor').style.display = 'flex';
-                renderSystem(""); 
-            }, 300);
-        };
+    document.getElementById('start-btn').onclick = () => {
+        code.h.raw = document.getElementById('ih').value;
+        code.c.raw = document.getElementById('ic').value;
+        code.j.raw = document.getElementById('ij').value;
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('main').style.display = 'flex';
 
-        function switchTab(type) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.code-view').forEach(v => v.classList.remove('active'));
-            document.getElementById(`btn-${type}`).classList.add('active');
-            document.getElementById(`edit-${type}`).classList.add('active');
-        }
+        iDoc = ifr.contentDocument || ifr.contentWindow.document;
+        iDoc.open();
+        iDoc.write('<!DOCTYPE html><html><head><style id="s"></style></head><body><div id="b"></div></body></html>');
+        iDoc.close();
+        sTag = iDoc.getElementById('s');
+        bTag = iDoc.getElementById('b');
+    };
 
-        async function startTyping(type) {
-            if (isTyping[type] || !content[type]) return;
-            isTyping[type] = true;
-            
-            const target = document.getElementById(`edit-${type}`);
-            const fullText = content[type];
-            let i = 0;
+    function sw(t) {
+        ['h','c','j'].forEach(k => {
+            document.getElementById('t'+k).classList.toggle('active', k === t);
+            document.getElementById('v'+k).classList.toggle('active', k === t);
+        });
+    }
 
-            const speed = 30; // Velocidad óptima
+    function type(t) {
+        if (code[t].ok) return;
+        let i = 0;
+        const view = document.getElementById('v'+t);
+        const interval = setInterval(() => {
+            if (i < code[t].raw.length) {
+                code[t].cur += code[t].raw.charAt(i);
+                view.textContent = code[t].cur;
+                view.innerHTML += '<span class="cursor"></span>';
+                view.scrollTop = view.scrollHeight;
 
-            const typing = setInterval(() => {
-                target.value = fullText.substring(0, i) + cursorChar;
-                i++;
+                if (t === 'h') bTag.innerHTML = code.h.cur;
+                if (t === 'c') sTag.textContent = code.c.cur;
+                if (t === 'j') syncJS(); // Sincronización inteligente
                 
-                // Renderizado en tiempo real absoluto
-                renderSystem();
+                i++;
+            } else {
+                clearInterval(interval);
+                code[t].ok = true;
+                view.textContent = code[t].cur;
+            }
+        }, 20);
+    }
 
-                target.scrollTop = target.scrollHeight;
+    // La clave para que el JS sea universal y no falle:
+    function syncJS() {
+        clearTimeout(jsT);
+        jsT = setTimeout(() => {
+            try {
+                // Eliminamos cualquier script previo para evitar duplicados
+                const old = iDoc.querySelectorAll('.temp-script');
+                old.forEach(s => s.remove());
 
-                if (i > fullText.length) {
-                    clearInterval(typing);
-                    isTyping[type] = false;
-                    target.value = fullText; // Limpiar cursor al finalizar
-                    renderSystem();
-                }
-            }, speed);
-        }
-
-        function renderSystem() {
-            const frame = document.getElementById('live-frame');
-            const h = document.getElementById('edit-html').value.replace(cursorChar, "");
-            const c = document.getElementById('edit-css').value.replace(cursorChar, "");
-            const j = document.getElementById('edit-js').value.replace(cursorChar, "");
-
-            const source = `
-                <!DOCTYPE html>
-                <html lang="es">
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        /* Base profesional */
-                        body { margin: 0; padding: 20px; font-family: -apple-system, sans-serif; line-height: 1.5; color: #333; }
-                        ${c}
-                    </style>
-                </head>
-                <body>
-                    ${h}
-                    <script>
-                        try {
-                            ${j}
-                        } catch (e) {
-                            console.error("Kernel Error:", e.message);
-                        }
-                    <\/script>
-                </body>
-                </html>
-            `;
-            
-            // Inyección de alta fidelidad
-            const doc = frame.contentDocument || frame.contentWindow.document;
-            doc.open();
-            doc.write(source);
-            doc.close();
-        }
-    </script>
+                const s = iDoc.createElement('script');
+                s.className = 'temp-script';
+                // Solo ejecutamos si el código parece estar completo (ej. tiene llaves cerradas)
+                // O simplemente lo intentamos ejecutar en un entorno seguro
+                s.textContent = `try { ${code.j.cur} } catch(e) {}`;
+                iDoc.body.appendChild(s);
+            } catch (e) {}
+        }, 100); // Espera 100ms tras la última letra para ejecutar
+    }
+</script>
 </body>
 </html>
